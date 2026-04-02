@@ -120,11 +120,26 @@ We sincerely thank the community for their valuable support and contributions in
 
 > ⚠️ Note: This quantized model is intended **for inference only**. Minor degradation in visual fidelity and temporal consistency may occur compared to the full-precision model.
 
-### Demo Results
-We provide comparison demos where camera parameters are estimated by [ViPE](https://github.com/nv-tlabs/vipe) from original videos downloaded from [Genie3](https://deepmind.google/blog/genie-3-a-new-frontier-for-world-models/):
+### 🎬 Demo Results
+
+#### ⚡ Real-Time Interactive Demo Videos (Lingbot-World-Fast)
+
+> These videos showcase **Lingbot-World-Fast** responding to user inputs and rendering results in real time.
+
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/fc95ee9e-e8a9-4f70-9aa2-9536c8365ccc" width="100%" poster=""> </video>
-  <video src="https://github.com/user-attachments/assets/bac89021-b394-4f68-a688-9a0b90e30241" width="100%" poster=""> </video>
+  <video src="https://github.com/user-attachments/assets/79b99272-5258-43b4-a466-8f3ac966fb8f" width="100%" poster=""></video>
+  <video src="https://github.com/user-attachments/assets/bfcdaecd-0a48-4a9f-bfdd-3f8e11b40227" width="100%" poster=""></video>
+  <video src="https://github.com/user-attachments/assets/5e231315-cde0-478d-9567-f8e92e877fdd" width="100%" poster=""></video>
+  <video src="https://github.com/user-attachments/assets/3941fed7-42dc-40cc-a72a-adf6fab37f28" width="100%" poster=""></video>
+</div>
+
+#### 🔍 Comparison Demo Videos (Lingbot-World-Base, Camera Pose Version)
+
+> Camera parameters are estimated by [ViPE](https://github.com/nv-tlabs/vipe) from original videos downloaded from [Genie3](https://deepmind.google/blog/genie-3-a-new-frontier-for-world-models/).
+
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/fc95ee9e-e8a9-4f70-9aa2-9536c8365ccc" width="100%" poster=""></video>
+  <video src="https://github.com/user-attachments/assets/bac89021-b394-4f68-a688-9a0b90e30241" width="100%" poster=""></video>
 </div>
 
 ## 📚 Related Projects
