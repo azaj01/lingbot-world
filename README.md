@@ -113,6 +113,25 @@ We provide the following reference inference scripts:
 Tips:
 If you have sufficient CUDA memory, you may increase the `frame_num` parameter to a value such as 961 to generate a one-minute video at 16 FPS. Otherwise if the CUDA memory is not sufficient, you may use ``--t5_cpu`` to decrease the memory usage.
 
+### Fast Inference
+We provide `generate_fast.py` for accelerated causal inference with KV caching, which processes video frames chunk-by-chunk instead of all at once:
+
+Download models using huggingface-cli. (If you have not already downloaded `lingbot-world-base-cam`, please download it first.)
+```sh
+huggingface-cli download robbyant/lingbot-world-fast --local-dir ./lingbot-world-base-cam/lingbot_world_fast
+```
+
+- `LingBot-World-Fast` — 480P, multi-GPU:
+  ``` sh
+  torchrun --nproc_per_node=8 generate_fast.py --task i2v-A14B --size 480*832 --ckpt_dir lingbot-world-base-cam --image examples/03/image.jpg --action_path examples/03 --dit_fsdp --t5_fsdp --ulysses_size 8 --frame_num 81 --prompt "A serene lakeside scene with a lone tree standing in calm water, surrounded by distant snow-capped mountains under a bright blue sky with drifting white clouds — gentle ripples reflect the tree and sky, creating a tranquil, meditative atmosphere."
+  ```
+
+You can also use the provided `run_fast.sh` script:
+``` sh
+bash run_fast.sh <weights_dir> <frame_num>
+# e.g. bash run_fast.sh lingbot-world-base-cam 201
+```
+
 ### Quantized Model for Limited GPU Resources
 We sincerely thank the community for their valuable support and contributions in LingBot-World. For users with limited GPU memory, we recommend using a **4-bit quantized version** of LingBot-World-Base (Cam), which significantly reduces GPU memory consumption while maintaining competitive visual quality for inference.
 
