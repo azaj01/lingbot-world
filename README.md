@@ -33,6 +33,7 @@ as a top-tier world model, LingBot-World offers the following features.
 </div>
 
 ## 🔥 News
+- Apr 7, 2026: 🎉 We release the **LingBot-World-Fast** inference scripts.
 - Apr 2, 2026: 🎉 We release the **LingBot-World-Fast** model weights.
 - Mar 2, 2026: 🎉 We release the **LingBot-World-Base (Act)** model weights.
 - Jan 29, 2026: 🎉 We release the technical report, code, and models for LingBot-World.
