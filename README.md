@@ -33,6 +33,7 @@ as a top-tier world model, LingBot-World offers the following features.
 </div>
 
 ## 🔥 News
+- Apr 10, 2026: 🎉 We release user-friendly scripts for the **LingBot-World-Base (Act)**.
 - Apr 7, 2026: 🎉 We release the **LingBot-World-Fast** inference scripts.
 - Apr 2, 2026: 🎉 We release the **LingBot-World-Fast** model weights.
 - Mar 2, 2026: 🎉 We release the **LingBot-World-Base (Act)** model weights.
@@ -105,11 +106,11 @@ We provide the following reference inference scripts:
 - `LingBot-World-Base (Act)`:
   - 480P:
   ``` sh
-  torchrun --nproc_per_node=8 generate.py --task i2v-A14B --size 480*832 --ckpt_dir lingbot-world-base-act --image examples/00/image.jpg --action_path examples/00 --dit_fsdp --t5_fsdp --ulysses_size 8 --frame_num 161 --prompt "The video presents a soaring journey through a fantasy jungle. The wind whips past the rider's blue hands gripping the reins, causing the leather straps to vibrate. The ancient gothic castle approaches steadily, its stone details becoming clearer against the backdrop of floating islands and distant waterfalls."
+  torchrun --nproc_per_node=8 generate.py --task i2v-A14B --size 480*832 --ckpt_dir lingbot-world-base-cam --image examples/05/image.jpg --action_path examples/05 --allow_act2cam --sample_steps 20 --dit_fsdp --t5_fsdp --ulysses_size 8 --frame_num 121 --prompt "The video presents a soaring journey through a fantasy jungle. The wind whips past the rider's blue hands gripping the reins, causing the leather straps to vibrate. The ancient gothic castle approaches steadily, its stone details becoming clearer against the backdrop of floating islands and distant waterfalls."
   ```
-  - 720P:
+  - 480P with **user-friendly** action string control:
   ``` sh
-  torchrun --nproc_per_node=8 generate.py --task i2v-A14B --size 720*1280 --ckpt_dir lingbot-world-base-act --image examples/00/image.jpg --action_path examples/00 --dit_fsdp --t5_fsdp --ulysses_size 8 --frame_num 161 --prompt "The video presents a soaring journey through a fantasy jungle. The wind whips past the rider's blue hands gripping the reins, causing the leather straps to vibrate. The ancient gothic castle approaches steadily, its stone details becoming clearer against the backdrop of floating islands and distant waterfalls."
+  torchrun --nproc_per_node=8 generate.py --task i2v-A14B --size 480*832 --ckpt_dir lingbot-world-base-cam --image examples/05/image.jpg --action_path examples/05 --action_string "w-10,a-10,d-10,iw-15,none-10,j-10,l-10,s-15" --allow_act2cam --sample_steps 20 --dit_fsdp --t5_fsdp --ulysses_size 8 --prompt "The video presents a soaring journey through a fantasy jungle. The wind whips past the rider's blue hands gripping the reins, causing the leather straps to vibrate. The ancient gothic castle approaches steadily, its stone details becoming clearer against the backdrop of floating islands and distant waterfalls."
   ```
 Tips:
 If you have sufficient CUDA memory, you may increase the `frame_num` parameter to a value such as 961 to generate a one-minute video at 16 FPS. Otherwise if the CUDA memory is not sufficient, you may use ``--t5_cpu`` to decrease the memory usage.

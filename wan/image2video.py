@@ -35,6 +35,11 @@ from .utils.cam_utils import (
 )
 from einops import rearrange
 
+from wan.utils.wasd_ijkl_to_c2ws import wasd_array_to_frame_keys
+from wan.utils.wasd_ijkl_to_c2ws import generate_and_save_trajectory
+from wan.utils.wasd_ijkl_to_c2ws import action_string_to_wasd_ijkl
+from wan.utils.vis_utils import visualize_wasd_and_rotation_ui
+
 
 class WanI2V:
 
@@ -218,6 +223,9 @@ class WanI2V:
                  input_prompt,
                  img,
                  action_path=None,
+                 allow_act2cam=False,
+                 action_string=None,
+                 vis_ui=True,
                  max_area=720 * 1280,
                  frame_num=81,
                  shift=5.0,
@@ -256,6 +264,10 @@ class WanI2V:
                 Random seed for noise generation. If -1, use random seed
             offload_model (`bool`, *optional*, defaults to True):
                 If True, offloads models to CPU during generation to save VRAM
+            action_string (`str`, *optional*, defaults to None):
+                When set with ``allow_act2cam`` and ``action_path``, builds per-frame WASD/IJKL
+                from a compact string (e.g. ``w-3,iw-1,none-5``) instead of loading
+                ``wasd_action.npy`` / ``ijkl_action.npy``.
 
         Returns:
             torch.Tensor:
@@ -266,14 +278,48 @@ class WanI2V:
                 - W: Frame width from max_area)
         """
         if action_path is not None:
-            c2ws = np.load(os.path.join(action_path, "poses.npy")) # opencv coordinate
-            len_c2ws = ((len(c2ws) - 1) // 4) * 4 + 1
-            frame_num = min(frame_num, len_c2ws)
-            c2ws = c2ws[:frame_num]
-            if self.control_type == 'act':
-                # In 'act' mode, use rotation of c2ws to control orientation and wasd_action to drive movement.
-                wasd_action = np.load(os.path.join(action_path, "action.npy")) # wasd action
-                wasd_action = wasd_action[:frame_num]
+            wasd_action = None
+            ijkl_action = None
+            wasd_action_for_vis = None
+            ijkl_action_for_vis = None
+            c2ws = None
+            if allow_act2cam:
+                assert self.control_type == "cam"
+                # For more precise control, we convert camera poses into wasd,ijkl actions and concatenate them with c2ws.
+                if action_string is not None:
+                    wasd_action, ijkl_action, str_frames = action_string_to_wasd_ijkl(
+                        action_string)
+                    if str_frames > frame_num:
+                        raise ValueError(
+                            f"action_string expands to {str_frames} frames but frame_num is {frame_num}"
+                        )
+                    if str_frames < frame_num:
+                        # frame_num may be auto-padded to 4n+1 in CLI; pad tail with no-key frames.
+                        pad_len = frame_num - str_frames
+                        wasd_action = np.pad(
+                            wasd_action, ((0, pad_len), (0, 0)), mode="constant")
+                        ijkl_action = np.pad(
+                            ijkl_action, ((0, pad_len), (0, 0)), mode="constant")
+                else:
+                    wasd_action = np.load(os.path.join(action_path, "wasd_action.npy"))  # wasd action
+                    ijkl_action = np.load(os.path.join(action_path, "ijkl_action.npy"))  # ijkl action
+                    wasd_action = wasd_action[:frame_num]
+                    ijkl_action = ijkl_action[:frame_num]
+                wasd_action_for_vis = wasd_action.copy()
+                ijkl_action_for_vis = ijkl_action.copy()
+                frame_keys = wasd_array_to_frame_keys(wasd_action, ijkl_action)
+                c2ws_from_act = generate_and_save_trajectory(frame_keys)
+                c2ws = np.array(c2ws_from_act)
+            else:
+                c2ws = np.load(os.path.join(action_path, "poses.npy")) # opencv coordinate
+                len_c2ws = ((len(c2ws) - 1) // 4) * 4 + 1
+                frame_num = min(frame_num, len_c2ws)
+                c2ws = c2ws[:frame_num]
+
+                if self.control_type == "act":
+                    # In 'act' mode, use rotation of c2ws to control orientation and wasd_action to drive movement.
+                    wasd_action = np.load(os.path.join(action_path, "action.npy")) # wasd action
+                    wasd_action = wasd_action[:frame_num]
 
         # preprocess
         guide_scale = (guide_scale, guide_scale) if isinstance(
@@ -508,4 +554,25 @@ class WanI2V:
         if dist.is_initialized():
             dist.barrier()
 
-        return videos[0] if self.rank == 0 else None
+        if self.rank == 0:
+            videos = videos[0]
+            if vis_ui and action_path is not None:
+                # videos format: (C, F, H, W), range (-1, 1)
+                # visualize_wasd_and_rotation_ui expects: (F, H, W, C), range (0, 1)
+                videos_np = videos.detach().cpu().numpy()
+                videos_np = np.transpose(videos_np, (1, 2, 3, 0))  # (C, F, H, W) -> (F, H, W, C)
+                videos_np = (videos_np + 1) / 2  # (-1, 1) -> (0, 1)
+                videos_np = visualize_wasd_and_rotation_ui(
+                            videos_np,
+                            c2ws,
+                            wasd_action_for_vis if wasd_action_for_vis is not None else wasd_action,
+                            ijkl_action_for_vis if ijkl_action_for_vis is not None else ijkl_action,
+                        )
+                # Convert back: (F, H, W, C) -> (C, F, H, W), (0, 1) -> (-1, 1)
+                videos_np = np.transpose(videos_np, (3, 0, 1, 2))  # (F, H, W, C) -> (C, F, H, W)
+                videos_np = videos_np * 2 - 1  # (0, 1) -> (-1, 1)
+                videos = torch.from_numpy(videos_np)
+        else:
+            videos = None
+        
+        return videos

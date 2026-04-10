@@ -54,7 +54,39 @@ def _validate_args(args):
     if args.sample_guide_scale is None:
         args.sample_guide_scale = cfg.sample_guide_scale
 
-    if args.frame_num is None:
+    if args.action_string is not None:
+        if args.action_path is None:
+            raise ValueError(
+                "--action_path is required when using --action_string "
+                "(directory must contain intrinsics.npy)."
+            )
+        from wan.utils.wasd_ijkl_to_c2ws import (
+            infer_frame_num_from_action_string,
+            pad_frame_num_to_4n_plus_1,
+        )
+
+        inferred_frames = infer_frame_num_from_action_string(args.action_string)
+        padded_frames = pad_frame_num_to_4n_plus_1(inferred_frames)
+        if padded_frames != inferred_frames:
+            logging.warning(
+                "Total frames implied by --action_string is %s, which does not satisfy 4n+1; "
+                "padding trailing 'none' frames to %s.",
+                inferred_frames,
+                padded_frames,
+            )
+            warnings.warn(
+                f"Total frames implied by --action_string is {inferred_frames}, "
+                f"which does not satisfy 4n+1; padding trailing 'none' frames to {padded_frames}.",
+                stacklevel=2,
+            )
+        args.allow_act2cam = True
+        if args.frame_num is not None and args.frame_num != padded_frames:
+            raise ValueError(
+                f"--frame_num ({args.frame_num}) must equal the total frames "
+                f"from --action_string after auto-padding ({padded_frames}), or omit --frame_num."
+            )
+        args.frame_num = padded_frames
+    elif args.frame_num is None:
         args.frame_num = cfg.frame_num
 
     args.base_seed = args.base_seed if args.base_seed >= 0 else random.randint(
@@ -167,6 +199,23 @@ def _parse_args():
         type=str,
         default=None,
         help="The camera path to generate the video from.")
+    parser.add_argument(
+        "--allow_act2cam",
+        action="store_true",
+        default=False,
+        help="Whether to allow action to camera conversion.")
+    parser.add_argument(
+        "--action_string",
+        type=str,
+        default=None,
+        help=(
+            "Compact keyboard schedule for allow_act2cam, e.g. "
+            "'w-3,iw-1,none-5,ijd-5' (whitespace removed). "
+            "Each segment is keys-<frame_count>; 'none' means no keys. "
+            "Requires --action_path for intrinsics.npy; implies --allow_act2cam "
+            "and sets --frame_num from the string unless it matches explicitly."
+        ),
+    )
     parser.add_argument(
         "--sample_solver",
         type=str,
@@ -287,6 +336,8 @@ def generate(args):
         args.prompt,
         img,
         action_path=args.action_path,
+        allow_act2cam=args.allow_act2cam,
+        action_string=args.action_string,
         max_area=MAX_AREA_CONFIGS[args.size],
         frame_num=args.frame_num,
         shift=args.sample_shift,
